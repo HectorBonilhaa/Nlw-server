@@ -29,20 +29,20 @@ export async function appRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get("/day", async (request) => {
+  app.get("/day", async (request, reply) => {
     const getDayParams = z.object({
-      date: z.coerce.date(),
+      date: z.string().optional(),
     });
 
     const { date } = getDayParams.parse(request.query);
 
-    const parsedDate = dayjs(date).startOf("day");
-    const weekDay = parsedDate.get("day");
+    const parsedDate = dayjs(date || new Date().toISOString()).startOf("day");
+    const weekDay = parsedDate.day();
 
     const possibleHabits = await prisma.habit.findMany({
       where: {
         created_at: {
-          lte: date,
+          lte: parsedDate.toDate(),
         },
         weekDays: {
           some: {
@@ -62,14 +62,12 @@ export async function appRoutes(app: FastifyInstance) {
     });
 
     const completedHabits =
-      day?.dayHabits.map((dayHabit) => {
-        return dayHabit.habit_id;
-      }) ?? [];
+      day?.dayHabits.map((dayHabit) => dayHabit.habit_id) || [];
 
-    return {
+    reply.send({
       possibleHabits,
       completedHabits,
-    };
+    });
   });
 
   app.patch("/habits/:id/toggle", async (request) => {
