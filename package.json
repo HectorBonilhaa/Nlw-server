@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "soma.js",
+  "engines": {
+    "node": "18"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "vercel-build": "npx prisma migrate deploy"
+    "build": "tsup src",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +25,7 @@
     "@mermaid-js/mermaid-cli": "^9.3.0",
     "prisma": "^4.8.1",
     "prisma-erd-generator": "^1.2.5",
+    "tsup": "^7.1.0",
     "tsx": "^3.12.2",
     "typescript": "^4.9.4"
   },
