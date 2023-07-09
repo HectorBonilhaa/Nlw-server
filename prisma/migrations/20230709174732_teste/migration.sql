@@ -2,7 +2,7 @@
 CREATE TABLE "habits" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "habits_pkey" PRIMARY KEY ("id")
 );
@@ -19,7 +19,7 @@ CREATE TABLE "habit_week_days" (
 -- CreateTable
 CREATE TABLE "days" (
     "id" TEXT NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "days_pkey" PRIMARY KEY ("id")
 );

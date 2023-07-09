@@ -29,48 +29,48 @@ export async function appRoutes(app: FastifyInstance) {
     });
   });
 
+  app.get("/day", async (request) => {
+    const getDayParams = z.object({
+      date: z.coerce.date(),
+    });
 
-app.get("/day", async (request, reply) => {
-  const getDayParams = z.object({
-    date: z.string().optional(),
-  });
+    const { date } = getDayParams.parse(request.query);
 
-  const { date } = getDayParams.parse(request.query);
+    const parsedDate = dayjs(date).startOf("day");
+    const weekDay = parsedDate.get("day");
 
-  const parsedDate = dayjs(date || new Date().toISOString()).startOf("day");
-  const weekDay = parsedDate.day();
-
-  const possibleHabits = await prisma.habit.findMany({
-    where: {
-      created_at: {
-        lte: parsedDate.toDate(),
-      },
-      weekDays: {
-        some: {
-          week_day: weekDay,
+    const possibleHabits = await prisma.habit.findMany({
+      where: {
+        created_at: {
+          lte: date,
+        },
+        weekDays: {
+          some: {
+            week_day: weekDay,
+          },
         },
       },
-    },
-  });
+    });
 
-  const day = await prisma.day.findFirst({
-    where: {
-      date: parsedDate.toDate(),
-    },
-    include: {
-      dayHabits: true,
-    },
-  });
+    const day = await prisma.day.findFirst({
+      where: {
+        date: parsedDate.toDate(),
+      },
+      include: {
+        dayHabits: true,
+      },
+    });
 
-  const completedHabits =
-    day?.dayHabits.map((dayHabit) => dayHabit.habit_id) || [];
+    const completedHabits =
+      day?.dayHabits.map((dayHabit) => {
+        return dayHabit.habit_id;
+      }) ?? [];
 
-  reply.send({
-    possibleHabits,
-    completedHabits,
+    return {
+      possibleHabits,
+      completedHabits,
+    };
   });
-});
- 
 
   app.patch("/habits/:id/toggle", async (request) => {
     const toggleHabitParams = z.object({
@@ -120,35 +120,29 @@ app.get("/day", async (request, reply) => {
     }
   });
 
-  app.get("/summary", async (req, res) => {
-    try {
-      const summary = await prisma.$queryRaw`
-      SELECT 
-        D.id, 
-        D.date,
-        (
-          SELECT 
-            CAST(COUNT(*) AS FLOAT)
-          FROM day_habits DH
-          WHERE DH.day_id = D.id
-        ) AS completed,
-        (
-          SELECT
-            CAST(COUNT(*) AS FLOAT)
-          FROM habit_week_days HDW
-          JOIN habits H
-            ON H.id = HDW.habit_id
-          WHERE
-            HDW.week_day = EXTRACT(EPOCH FROM D.date) / 86400::FLOAT::INT
-            AND H.created_at <= D.date
-        ) AS amount
-      FROM days D;
-    `;
+  app.get("/summary", async () => {
+    const summary = await prisma.$queryRaw`
+    SELECT 
+      D.id, 
+      D.date,
+      (
+        SELECT 
+          COUNT(*)::FLOAT
+        FROM day_habits DH
+        WHERE DH.day_id = D.id
+      ) AS completed,
+      (
+        SELECT
+          COUNT(*)::FLOAT
+        FROM habit_week_days HDW
+        JOIN habits H ON H.id = HDW.habit_id
+        WHERE
+          HDW.week_day = EXTRACT(DOW FROM D.date)::INT
+          AND H.created_at <= D.date
+      ) AS amount
+    FROM days D;
+  `;
 
-      res.send({ summary });
-    } catch (error) {
-      console.error(error);
-      res.status(500).send("Internal Server Error");
-    }
+    return summary;
   });
 }
